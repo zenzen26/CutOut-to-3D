@@ -18,14 +18,16 @@ window.addEventListener('resize', sizeCanvas);
 // ═══════════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════════
-let inking   = false;
-let penColor = '#c0392b';
-let penSize  = 4;
-let hasStroke = false;
-let hasCut    = false;
-let stabLevel  = 4;   // 0 = off, 1–16 = smoothing window
-let stabPoints = [];  // recent pointer positions for averaging
-let lastDrawPt = null;
+let inking      = false;
+let penColor    = '#c0392b';
+let penSize     = 4;
+let hasStroke   = false;
+let hasCut      = false;
+let stabLevel   = 4;   // 0 = off, 1–16 = smoothing window
+let stabPoints  = [];  // recent pointer positions for averaging
+let lastDrawPt  = null;
+let eraserMode  = false;
+let eraserSize  = 16;
 
 // stamp state
 let svgImg      = null;
@@ -82,19 +84,29 @@ function istart(e) {
   const p = dpos(e);
   lastDrawPt = p;
   CTX.beginPath(); CTX.moveTo(p.x, p.y);
-  CTX.strokeStyle = penColor; CTX.lineWidth = penSize;
+  if (eraserMode) {
+    CTX.globalCompositeOperation = 'destination-out';
+    CTX.strokeStyle = 'rgba(0,0,0,1)';
+    CTX.lineWidth   = eraserSize;
+  } else {
+    CTX.globalCompositeOperation = 'source-over';
+    CTX.strokeStyle = penColor;
+    CTX.lineWidth   = penSize;
+  }
   CTX.lineCap = 'round'; CTX.lineJoin = 'round';
 }
 
 function imove(e) {
   const raw = dpos(e);
   if (stampMode) { drawStampCursor(raw); return; }
+  if (eraserMode && !inking) { drawEraserCursor(raw); return; }
+  if (eraserMode && inking)  { drawEraserCursor(raw); }
   if (!inking) return;
   const p = getSmoothedPoint(raw);
   CTX.lineTo(p.x, p.y); CTX.stroke();
   CTX.beginPath(); CTX.moveTo(p.x, p.y);
   lastDrawPt = p;
-  if (!hasStroke) {
+  if (!eraserMode && !hasStroke) {
     hasStroke = true;
     document.getElementById('btnCut').disabled = false;
     setSt('draw', 'Close your shape then click Cut Out ✂');
@@ -105,6 +117,8 @@ function iend() {
   inking = false;
   stabPoints = [];
   lastDrawPt = null;
+  CTX.globalCompositeOperation = 'source-over';
+  if (!eraserMode) clearStampCursor();
 }
 
 DC.addEventListener('mousedown',  istart);
@@ -123,7 +137,58 @@ document.querySelectorAll('.cdot').forEach(d => {
     document.querySelectorAll('.cdot').forEach(x => x.classList.remove('on'));
     d.classList.add('on');
     penColor = d.dataset.c;
+    // switching to a colour exits eraser mode
+    if (eraserMode) deactivateEraser();
   });
+});
+
+// ── Eraser button ──
+document.getElementById('btnEraser').addEventListener('click', () => {
+  if (eraserMode) deactivateEraser();
+  else            activateEraser();
+});
+
+function activateEraser() {
+  eraserMode = true;
+  document.getElementById('btnEraser').classList.add('on');
+  DC.style.cursor = 'none';
+  SC.style.display = 'block';
+  setSt('draw', 'Eraser active — drag to erase. Click Eraser again to go back to pen.');
+}
+
+function deactivateEraser() {
+  eraserMode = false;
+  document.getElementById('btnEraser').classList.remove('on');
+  clearStampCursor();
+  if (!stampMode) {
+    SC.style.display = 'none';
+    DC.style.cursor  = 'crosshair';
+  }
+  if (hasCut) setSt('cut', 'Back to drawing.');
+  else if (hasStroke) setSt('draw', 'Close your shape then click Cut Out ✂');
+  else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
+}
+
+// Circular preview cursor for eraser
+function drawEraserCursor(p) {
+  SCTX.clearRect(0, 0, SC.width, SC.height);
+  const r = eraserSize / 2;
+  SCTX.save();
+  SCTX.beginPath();
+  SCTX.arc(p.x, p.y, r, 0, Math.PI * 2);
+  SCTX.strokeStyle = 'rgba(80,80,80,0.7)';
+  SCTX.lineWidth   = 1.5;
+  SCTX.setLineDash([3, 3]);
+  SCTX.stroke();
+  SCTX.restore();
+}
+
+document.getElementById('esz').addEventListener('input', e => {
+  eraserSize = +e.target.value;
+  const d = document.getElementById('ezdot');
+  const vis = Math.min(eraserSize, 24);
+  d.style.width  = vis + 'px';
+  d.style.height = vis + 'px';
 });
 
 document.getElementById('bsz').addEventListener('input', e => {
