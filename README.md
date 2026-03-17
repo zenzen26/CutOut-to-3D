@@ -2,7 +2,7 @@
 
 A browser-based tool to draw or stamp shapes, cut them out, and view them as 3D paper cutouts — with GLB export.
 
-**Live site:** https://zenzen26.github.io/cut-out-to-3D/
+**Live site:** https://zenzen26.github.io/CutOut-to-3D/
 
 ---
 
