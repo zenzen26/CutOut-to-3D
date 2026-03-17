@@ -50,7 +50,6 @@ body::before {
   padding: 24px 24px 32px;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 /* ── Header ── */
@@ -118,7 +117,6 @@ body::before {
   position: relative;
   overflow: hidden;
   animation: rise .5s .08s ease both;
-  flex: 1;
 }
 
 /* ═══════════════════════════════════════
@@ -287,6 +285,24 @@ body::before {
   box-shadow: 2px 2px 0 rgba(192,57,43,.3);
 }
 
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--kraft);
+  color: var(--ink-lt);
+  padding: 4px 7px;
+  font-size: .85rem;
+}
+.btn-icon:hover { background: var(--cream-deep); color: var(--ink); }
+
+/* Row C is hidden by default (desktop/tablet), shown on mobile */
+.toolbar-row-c {
+  display: none;
+  border-top: 1px solid var(--cream-deep);
+  gap: 6px;
+  padding: 0 12px;
+}
+.hide-mobile { display: flex; }
+
 .btn:disabled {
   opacity: .3; cursor: not-allowed;
   transform: none !important; box-shadow: none !important;
@@ -310,15 +326,12 @@ body::before {
 /* ── Canvas ── */
 .cwrap {
   position: relative;
-  flex: 1;
-  min-height: 520px;    /* taller on desktop */
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  line-height: 0;
 }
 #drawCanvas {
   display: block;
-  width: 100%;
-  min-height: 520px;
+  vertical-align: top;
   cursor: crosshair;
   background-color: #faf8f2;
   background-image:
@@ -415,7 +428,6 @@ body::before {
 @media (max-width: 900px) {
   .page { max-width: 100%; padding: 16px 14px 24px; }
   .brand-name { font-size: 2rem; }
-  .cwrap { min-height: 380px; }
   .v3d-hint { display: none; }
 }
 
@@ -429,6 +441,10 @@ body::before {
   .brand-sub  { font-size: .8rem; }
   .pill { padding: 2px 6px; font-size: .58rem; }
 
+  /* Show row C (actions), hide desktop actions from row B */
+  .toolbar-row-c  { display: flex; }
+  .hide-mobile    { display: none !important; }
+
   /* Tighter rows on small screens */
   .toolbar-row { height: 42px; padding: 0 8px; }
 
@@ -441,7 +457,6 @@ body::before {
   #btnSVG { font-size: 0; }
   #btnSVG::after { content: '⬆ SVG'; font-size: .67rem; }
 
-  .cwrap { min-height: 280px; }
   .cwrap::before { left: 36px; }
 
   .smsg { font-size: .65rem; }

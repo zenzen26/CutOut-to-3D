@@ -80,6 +80,7 @@ function getSmoothedPoint(raw) {
 // DRAWING
 // ═══════════════════════════════════════════════════════════════════
 function istart(e) {
+  if (hasCut) return;  // no drawing in cut/3D mode
   if (stampMode) { doStamp(dpos(e)); return; }
   inking = true;
   stabPoints = [];
@@ -223,14 +224,29 @@ document.getElementById('stabSlider').addEventListener('input', e => {
   document.getElementById('stabVal').textContent = stabLevel === 0 ? 'off' : stabLevel;
 });
 
-document.getElementById('btnClear').addEventListener('click', () => {
+document.getElementById('btnClearAll').addEventListener('click', () => {
   CTX.clearRect(0, 0, DC.width, DC.height);
   hasStroke = hasCut = false;
-  document.getElementById('btnCut').disabled = true;
-  document.getElementById('btn3d').disabled  = true;
+  DC._rawDrawing = null; DC._outside = null;
+  document.getElementById('btnCut').disabled  = true;
+  document.getElementById('btn3d').disabled   = true;
+  document.getElementById('btnEdit').style.display = 'none';
   setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
   document.getElementById('caption').textContent = 'untitled clipping';
-  DC._outside = null;
+});
+
+document.getElementById('btnEdit').addEventListener('click', () => {
+  // Close 3D view if open
+  document.getElementById('v3d').classList.remove('on');
+  destroy3D();
+  // Restore the raw drawing and return to draw mode
+  if (DC._rawDrawing) CTX.putImageData(DC._rawDrawing, 0, 0);
+  hasCut = false;
+  document.getElementById('btn3d').disabled  = true;
+  document.getElementById('btnEdit').style.display = 'none';
+  document.getElementById('btnCut').disabled = false;
+  setSt('draw', 'Back to drawing — close your shape then click Cut Out ✂');
+  document.getElementById('caption').textContent = 'editing ✏';
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -385,7 +401,9 @@ document.getElementById('btnCut').addEventListener('click', doCut);
 
 function doCut() {
   const W   = DC.width, H = DC.height;
-  const raw = CTX.getImageData(0, 0, W, H).data;
+  // Save the raw drawing so we can restore it later
+  DC._rawDrawing = CTX.getImageData(0, 0, W, H);
+  const raw = DC._rawDrawing.data;
 
   // 1. Mark stroke pixels
   const stroke = new Uint8Array(W * H);
@@ -455,7 +473,8 @@ function doCut() {
 
   hasCut = true;
   document.getElementById('btn3d').disabled = false;
-  setSt('cut', '✂ Clean cut! Click View 3D to see your cutout in 3D space.');
+  document.getElementById('btnEdit').style.display = '';
+  setSt('cut', '✂ Clean cut! Click View 3D, or Edit to go back to drawing.');
   document.getElementById('caption').textContent = 'cut & ready ✂';
 
   if (stampMode) clearStamp();
@@ -476,6 +495,10 @@ document.getElementById('btn3d').addEventListener('click', () => {
 document.getElementById('btnBack').addEventListener('click', () => {
   document.getElementById('v3d').classList.remove('on');
   destroy3D();
+  // Restore the cut-view display (not the raw drawing — user is still in cut mode)
+  if (DC._dispImg && DC._W && DC._H) {
+    CTX.putImageData(new ImageData(DC._dispImg, DC._W, DC._H), 0, 0);
+  }
   setSt('cut', 'Back to canvas.');
   document.getElementById('caption').textContent = 'cut & ready ✂';
 });
@@ -541,7 +564,7 @@ function init3D() {
       const u1 = (x0 + px + step) / MW, v1 = 1 - (y0 + py + step) / MH;
       vp.push(bx, by, 0, bx + cw, by, 0, bx + cw, by - ch, 0, bx, by - ch, 0);
       vu.push(u0, v0, u1, v0, u1, v1, u0, v1);
-      vi.push(idx, idx+1, idx+2, idx, idx+2, idx+3);
+      vi.push(idx, idx+2, idx+1, idx, idx+3, idx+2);
       idx += 4;
     }
   }
@@ -576,13 +599,11 @@ function init3D() {
   texBack.premultiplyAlpha = false;
 
   // ── Materials & Meshes ──
-  const frontMat = new THREE.MeshLambertMaterial({ map: tex,     side: THREE.FrontSide, transparent: false, alphaTest: 0.5 });
-  const backMat  = new THREE.MeshLambertMaterial({ map: texBack, side: THREE.FrontSide, transparent: false, alphaTest: 0.5 });
+  const frontMat = new THREE.MeshLambertMaterial({ map: tex,     side: THREE.FrontSide, transparent: true, alphaTest: 0.5 });
+  const backMat  = new THREE.MeshLambertMaterial({ map: texBack, side: THREE.BackSide,  transparent: true, alphaTest: 0.5 });
   const grp = new THREE.Group();
   grp.add(new THREE.Mesh(geo, frontMat));
-  const bm = new THREE.Mesh(geo.clone(), backMat);
-  bm.scale.z = -1; bm.position.z = -0.014;
-  grp.add(bm);
+  grp.add(new THREE.Mesh(geo.clone(), backMat));
 
   // shadow plane
   const shadow = new THREE.Mesh(
@@ -687,7 +708,7 @@ function exportGLB() {
         const u1 = (x0 + px + step) / MW, v1 = 1 - (y0 + py + step) / MH;
         positions.push(bx, by, 0, bx + cw, by, 0, bx + cw, by - ch, 0, bx, by - ch, 0);
         uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
-        indices.push(idx, idx+1, idx+2, idx, idx+2, idx+3);
+        indices.push(idx, idx+2, idx+1, idx, idx+3, idx+2);
         idx += 4;
       }
     }

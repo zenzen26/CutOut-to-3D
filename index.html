@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <!-- ROW B: sliders · actions -->
+      <!-- ROW B: sliders + actions (actions hidden on mobile) -->
       <div class="toolbar-row toolbar-row-b">
         <div class="tg">
           <span class="tlbl">size</span>
@@ -79,11 +79,21 @@
           <input type="range" class="trange" id="esz" min="6" max="48" value="16">
           <div class="szpv"><div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div></div>
         </div>
-        <div class="tg tg-actions">
-          <button class="btn btn-ghost" id="btnClear">Clear</button>
+        <!-- Visible on tablet/desktop, hidden on mobile -->
+        <div class="tg tg-actions hide-mobile">
+          <button class="btn btn-icon" id="btnClearAll" title="Clear all">🗑</button>
+          <button class="btn btn-ghost" id="btnEdit" style="display:none">✏ Edit</button>
           <button class="btn btn-cut"   id="btnCut"   disabled>✂ Cut Out</button>
           <button class="btn btn-3d"    id="btn3d"    disabled>⬡ 3D</button>
         </div>
+      </div>
+
+      <!-- ROW C: actions — mobile only -->
+      <div class="toolbar-row toolbar-row-c show-mobile-only">
+        <button class="btn btn-icon" id="btnClearAllM" title="Clear all">🗑</button>
+        <button class="btn btn-ghost" id="btnEditM" style="display:none">✏ Edit</button>
+        <button class="btn btn-cut"   id="btnCutM"  disabled>✂ Cut Out</button>
+        <button class="btn btn-3d"    id="btn3dM"   disabled>⬡ 3D</button>
       </div>
 
     </div>
@@ -122,5 +132,26 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="main.js"></script>
+<script>
+  // Mirror mobile Row C buttons to the real desktop ones
+  function mirrorBtn(mobileId, realId) {
+    const m = document.getElementById(mobileId);
+    const r = document.getElementById(realId);
+    if (!m || !r) return;
+    // sync disabled state
+    new MutationObserver(() => { m.disabled = r.disabled; })
+      .observe(r, { attributes: true, attributeFilter: ['disabled'] });
+    // sync display
+    new MutationObserver(() => { m.style.display = r.style.display; })
+      .observe(r, { attributes: true, attributeFilter: ['style'] });
+    m.disabled = r.disabled;
+    m.style.display = r.style.display;
+    m.addEventListener('click', () => r.click());
+  }
+  mirrorBtn('btnCutM',    'btnCut');
+  mirrorBtn('btn3dM',     'btn3d');
+  mirrorBtn('btnClearAllM','btnClearAll');
+  mirrorBtn('btnEditM',   'btnEdit');
+</script>
 </body>
 </html>
