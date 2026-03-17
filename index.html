@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PaperCut</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Eraser button active state */
+    .btn-eraser.on {
+      background: #e8c5bf !important;
+      color: #5a2a1a !important;
+      border-color: #c0392b !important;
+      box-shadow: 0 0 0 2px rgba(192,57,43,0.25);
+    }
+  </style>
   <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
@@ -15,8 +24,8 @@
     <div class="brand">
       <span class="brand-scissors">✂</span>
       <div>
-        <div class="brand-name">PaperCut</div>
-        <div class="brand-sub">Draw & Cut your own Paper Doll</div>
+        <div class="brand-name">Cut Out</div>
+        <div class="brand-sub">draw · stamp · cut · 3D</div>
       </div>
     </div>
     <div class="header-right">
@@ -71,6 +80,17 @@
         <span class="tlbl">smooth</span>
         <input type="range" class="trange" id="stabSlider" min="0" max="16" value="4" step="1">
         <span class="stab-val" id="stabVal">4</span>
+      </div>
+
+      <div class="tsep"></div>
+
+      <!-- Eraser -->
+      <div class="tg">
+        <button class="btn btn-eraser" id="btnEraser">◻ Eraser</button>
+        <input type="range" class="trange" id="esz" min="6" max="48" value="16">
+        <div class="szpv">
+          <div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div>
+        </div>
       </div>
 
       <div class="tsep"></div>
