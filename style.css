@@ -268,11 +268,25 @@ body::before {
 }
 .btn-svg:hover { background: #245070; transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #0f2438; }
 
+/* toolbar icon images */
+.tlbl-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  opacity: 0.65;
+  display: block;
+}
+.btn-icon-img {
+  width: 16px; height: 16px;
+  display: block;
+  transition: filter .14s;
+}
+
 .btn-eraser {
   background: var(--cream);
   border: 1.5px solid var(--kraft-dk);
   color: var(--ink-lt);
   box-shadow: 2px 2px 0 var(--kraft);
+  padding: 5px 9px;
 }
 .btn-eraser:hover {
   background: var(--cream-deep); color: var(--ink);
@@ -283,6 +297,9 @@ body::before {
   color: #5a2a1a;
   border-color: #c0392b;
   box-shadow: 2px 2px 0 rgba(192,57,43,.3);
+}
+.btn-eraser.on .btn-icon-img {
+  filter: invert(18%) sepia(60%) saturate(800%) hue-rotate(330deg) brightness(80%);
 }
 
 .btn-icon {

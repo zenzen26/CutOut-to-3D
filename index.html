@@ -15,15 +15,14 @@
     <div class="brand">
       <span class="brand-scissors">✂</span>
       <div>
-        <div class="brand-name">Cut Out</div>
+        <div class="brand-name">PaperCut</div>
         <div class="brand-sub">draw · stamp · cut · 3D</div>
       </div>
     </div>
     <div class="header-right">
       <div class="step-pills">
         <div class="pill on" id="p1">① draw</div>
-        <div class="pill"    id="p2">② cut</div>
-        <div class="pill"    id="p3">③ 3D</div>
+        <div class="pill"    id="p3">② 3D</div>
       </div>
     </div>
   </header>
@@ -37,7 +36,7 @@
       <!-- ROW A: pen colours · eraser · SVG stamp -->
       <div class="toolbar-row toolbar-row-a">
         <div class="tg">
-          <span class="tlbl">pen</span>
+          <img src="https://img.icons8.com/ios-filled/20/2b2318/pen.png" alt="pen" class="tlbl-icon" title="Pen">
           <div class="cdot on" style="background:#c0392b" data-c="#c0392b"></div>
           <div class="cdot"    style="background:#2c5f8a" data-c="#2c5f8a"></div>
           <div class="cdot"    style="background:#3a6b4a" data-c="#3a6b4a"></div>
@@ -47,7 +46,9 @@
         </div>
         <div class="tsep"></div>
         <div class="tg">
-          <button class="btn btn-eraser" id="btnEraser">◻ Eraser</button>
+          <button class="btn btn-eraser" id="btnEraser" title="Eraser">
+            <img src="https://img.icons8.com/ios-filled/16/2b2318/eraser.png" alt="eraser" class="btn-icon-img" id="eraserIconImg">
+          </button>
         </div>
         <div class="tsep"></div>
         <div class="tg">
@@ -64,7 +65,7 @@
       <div class="toolbar-row toolbar-row-b">
         <div class="tg">
           <span class="tlbl">size</span>
-          <input type="range" class="trange" id="bsz" min="2" max="14" value="4">
+          <input type="range" class="trange" id="bsz" min="1" max="50" value="4">
           <div class="szpv"><div class="szdot" id="szdot" style="width:4px;height:4px"></div></div>
         </div>
         <div class="tsep"></div>
@@ -76,14 +77,13 @@
         <div class="tsep"></div>
         <div class="tg">
           <span class="tlbl">eraser</span>
-          <input type="range" class="trange" id="esz" min="6" max="48" value="16">
+          <input type="range" class="trange" id="esz" min="6" max="50" value="16">
           <div class="szpv"><div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div></div>
         </div>
         <!-- Visible on tablet/desktop, hidden on mobile -->
         <div class="tg tg-actions hide-mobile">
           <button class="btn btn-icon" id="btnClearAll" title="Clear all">🗑</button>
           <button class="btn btn-ghost" id="btnEdit" style="display:none">✏ Edit</button>
-          <button class="btn btn-cut"   id="btnCut"   disabled>✂ Cut Out</button>
           <button class="btn btn-3d"    id="btn3d"    disabled>⬡ 3D</button>
         </div>
       </div>
@@ -92,7 +92,6 @@
       <div class="toolbar-row toolbar-row-c show-mobile-only">
         <button class="btn btn-icon" id="btnClearAllM" title="Clear all">🗑</button>
         <button class="btn btn-ghost" id="btnEditM" style="display:none">✏ Edit</button>
-        <button class="btn btn-cut"   id="btnCutM"  disabled>✂ Cut Out</button>
         <button class="btn btn-3d"    id="btn3dM"   disabled>⬡ 3D</button>
       </div>
 
@@ -106,11 +105,11 @@
       <!-- 3D OVERLAY -->
       <div id="v3d">
         <div class="v3d-bar">
-          <span class="v3d-lbl">✂ Cut Out — 3D</span>
+          <span class="v3d-lbl">✂ 3D Mode</span>
           <div class="v3d-right">
             <span class="v3d-hint">drag · scroll · right-drag pan</span>
             <button class="btn-dk accent" id="btnGLB">⬇ Export GLB</button>
-            <button class="btn-dk"        id="btnBack">← back</button>
+            <button class="btn-dk"        id="btnBack">✏ Edit</button>
           </div>
         </div>
         <div class="vstack" id="vstack">
@@ -122,7 +121,7 @@
     <!-- STATUS BAR -->
     <div class="sbar">
       <div class="sdot" id="sdot"></div>
-      <div class="smsg" id="smsg">Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂</div>
+      <div class="smsg" id="smsg">Draw a closed outline, or upload an SVG stamp — then click ⬡ 3D</div>
     </div>
   </div>
 
@@ -148,7 +147,6 @@
     m.style.display = r.style.display;
     m.addEventListener('click', () => r.click());
   }
-  mirrorBtn('btnCutM',    'btnCut');
   mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnClearAllM','btnClearAll');
   mirrorBtn('btnEditM',   'btnEdit');

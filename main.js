@@ -15,6 +15,8 @@ function sizeCanvas() {
   SC.style.width  = w + 'px'; SC.style.height = h + 'px';
 }
 sizeCanvas();
+SC.style.display = 'block';
+DC.style.cursor  = 'none';
 window.addEventListener('resize', sizeCanvas);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -52,11 +54,10 @@ function dpos(e) {
 function setSt(state, msg) {
   document.getElementById('sdot').className = 'sdot' + (state ? ' ' + state : '');
   document.getElementById('smsg').textContent = msg;
-  const map = { '': 0, 'draw': 0, 'cut': 1, 'd3': 2, 'stamp': 0 };
-  const active = map[state] ?? 0;
-  ['p1','p2','p3'].forEach((id, i) =>
-    document.getElementById(id).classList.toggle('on', i <= active && state !== '')
-  );
+  // p2 is now the 3D pill (was p3), p1 is draw
+  const is3d = state === 'd3';
+  document.getElementById('p1').classList.toggle('on', !is3d && state !== '');
+  document.getElementById('p3').classList.toggle('on', is3d);
   if (state === '' || state === 'draw' || state === 'stamp')
     document.getElementById('p1').classList.add('on');
 }
@@ -80,7 +81,6 @@ function getSmoothedPoint(raw) {
 // DRAWING
 // ═══════════════════════════════════════════════════════════════════
 function istart(e) {
-  if (hasCut) return;  // no drawing in cut/3D mode
   if (stampMode) { doStamp(dpos(e)); return; }
   inking = true;
   stabPoints = [];
@@ -104,6 +104,7 @@ function imove(e) {
   if (stampMode) { drawStampCursor(raw); return; }
   if (eraserMode && !inking) { drawEraserCursor(raw); return; }
   if (eraserMode && inking)  { drawEraserCursor(raw); }
+  if (!eraserMode) drawPenCursor(raw);
   if (!inking) return;
   const p = getSmoothedPoint(raw);
   CTX.lineTo(p.x, p.y); CTX.stroke();
@@ -111,8 +112,8 @@ function imove(e) {
   lastDrawPt = p;
   if (!eraserMode && !hasStroke) {
     hasStroke = true;
-    document.getElementById('btnCut').disabled = false;
-    setSt('draw', 'Close your shape then click Cut Out ✂');
+    document.getElementById('btn3d').disabled = false;
+    setSt('draw', 'Looking good — click ⬡ 3D when ready!');
   }
 }
 
@@ -121,7 +122,6 @@ function iend() {
   stabPoints = [];
   lastDrawPt = null;
   CTX.globalCompositeOperation = 'source-over';
-  if (!eraserMode) clearStampCursor();
 }
 
 DC.addEventListener('mousedown',  istart);
@@ -147,8 +147,8 @@ function setMode(mode) {
   stampMode  = false;
   document.getElementById('btnEraser').classList.remove('on');
   clearStampCursor();
-  SC.style.display = 'none';
-  DC.style.cursor  = 'crosshair';
+  SC.style.display = 'block';
+  DC.style.cursor  = 'none';
   CTX.globalCompositeOperation = 'source-over';
 
   activeMode = mode;
@@ -170,10 +170,12 @@ function setMode(mode) {
     document.getElementById('caption').textContent = 'stamp mode 🍪';
 
   } else {
-    // pen — status depends on canvas state
-    if (hasCut) setSt('cut', 'Back to drawing.');
-    else if (hasStroke) setSt('draw', 'Close your shape then click Cut Out ✂');
-    else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
+    // pen — show custom circle cursor
+    SC.style.display = 'block';
+    DC.style.cursor  = 'none';
+    if (hasCut) setSt('draw', 'Back to drawing.');
+    else if (hasStroke) setSt('draw', 'Looking good — click ⬡ 3D when ready!');
+    else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click ⬡ 3D');
   }
 }
 
@@ -206,6 +208,28 @@ function drawEraserCursor(p) {
   SCTX.restore();
 }
 
+// Filled circle cursor for pen — shows actual brush size in current colour
+function drawPenCursor(p) {
+  SCTX.clearRect(0, 0, SC.width, SC.height);
+  const r = Math.max(1, penSize / 2);
+  SCTX.save();
+  // filled dot in pen colour
+  SCTX.beginPath();
+  SCTX.arc(p.x, p.y, r, 0, Math.PI * 2);
+  SCTX.fillStyle = penColor;
+  SCTX.globalAlpha = 0.85;
+  SCTX.fill();
+  // thin dark ring so it's visible on any background
+  SCTX.globalAlpha = 0.5;
+  SCTX.beginPath();
+  SCTX.arc(p.x, p.y, r + 1, 0, Math.PI * 2);
+  SCTX.strokeStyle = 'rgba(0,0,0,0.4)';
+  SCTX.lineWidth = 1;
+  SCTX.setLineDash([]);
+  SCTX.stroke();
+  SCTX.restore();
+}
+
 document.getElementById('esz').addEventListener('input', e => {
   eraserSize = +e.target.value;
   const d = document.getElementById('ezdot');
@@ -228,10 +252,9 @@ document.getElementById('btnClearAll').addEventListener('click', () => {
   CTX.clearRect(0, 0, DC.width, DC.height);
   hasStroke = hasCut = false;
   DC._rawDrawing = null; DC._outside = null;
-  document.getElementById('btnCut').disabled  = true;
   document.getElementById('btn3d').disabled   = true;
   document.getElementById('btnEdit').style.display = 'none';
-  setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
+  setSt('', 'Draw a closed outline, or upload an SVG stamp — then click ⬡ 3D');
   document.getElementById('caption').textContent = 'untitled clipping';
 });
 
@@ -242,10 +265,9 @@ document.getElementById('btnEdit').addEventListener('click', () => {
   // Restore the raw drawing and return to draw mode
   if (DC._rawDrawing) CTX.putImageData(DC._rawDrawing, 0, 0);
   hasCut = false;
-  document.getElementById('btn3d').disabled  = true;
+  document.getElementById('btn3d').disabled  = false;
   document.getElementById('btnEdit').style.display = 'none';
-  document.getElementById('btnCut').disabled = false;
-  setSt('draw', 'Back to drawing — close your shape then click Cut Out ✂');
+  setSt('draw', 'Back to drawing — click ⬡ 3D when ready!');
   document.getElementById('caption').textContent = 'editing ✏';
 });
 
@@ -389,16 +411,14 @@ function doStamp(p) {
   drawStampCursor(p);
 
   hasStroke = true;
-  document.getElementById('btnCut').disabled = false;
-  setSt('stamp', 'Stamped! Click again to add more, or click Cut Out ✂');
+  document.getElementById('btn3d').disabled = false;
+  setSt('stamp', 'Stamped! Click again to add more, or click ⬡ 3D');
   document.getElementById('caption').textContent = 'stamped 🍪';
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // CUT OUT
 // ═══════════════════════════════════════════════════════════════════
-document.getElementById('btnCut').addEventListener('click', doCut);
-
 function doCut() {
   const W   = DC.width, H = DC.height;
   // Save the raw drawing so we can restore it later
@@ -472,10 +492,7 @@ function doCut() {
   DC._W = W; DC._H = H; DC._dispImg = disp; DC._texImg = tex3d;
 
   hasCut = true;
-  document.getElementById('btn3d').disabled = false;
   document.getElementById('btnEdit').style.display = '';
-  setSt('cut', '✂ Clean cut! Click View 3D, or Edit to go back to drawing.');
-  document.getElementById('caption').textContent = 'cut & ready ✂';
 
   if (stampMode) clearStamp();
 }
@@ -486,6 +503,8 @@ function doCut() {
 let renderer3 = null, afId = null, _geo = null;
 
 document.getElementById('btn3d').addEventListener('click', () => {
+  // Run the cut algorithm first (silently), then go straight to 3D
+  doCut();
   document.getElementById('v3d').classList.add('on');
   setSt('d3', '3D — drag to rotate · scroll to zoom · right-drag to pan');
   document.getElementById('caption').textContent = '3D float ✦';
@@ -495,12 +514,13 @@ document.getElementById('btn3d').addEventListener('click', () => {
 document.getElementById('btnBack').addEventListener('click', () => {
   document.getElementById('v3d').classList.remove('on');
   destroy3D();
-  // Restore the cut-view display (not the raw drawing — user is still in cut mode)
-  if (DC._dispImg && DC._W && DC._H) {
-    CTX.putImageData(new ImageData(DC._dispImg, DC._W, DC._H), 0, 0);
-  }
-  setSt('cut', 'Back to canvas.');
-  document.getElementById('caption').textContent = 'cut & ready ✂';
+  // Restore the raw drawing (user goes back to draw mode, not cut mode)
+  if (DC._rawDrawing) CTX.putImageData(DC._rawDrawing, 0, 0);
+  hasCut = false;
+  document.getElementById('btn3d').disabled = false;
+  document.getElementById('btnEdit').style.display = 'none';
+  setSt('draw', 'Back to drawing — click ⬡ 3D when ready!');
+  document.getElementById('caption').textContent = 'editing ✏';
 });
 
 function destroy3D() {
