@@ -9,8 +9,10 @@ const SCTX = SC.getContext('2d');
 function sizeCanvas() {
   const w = document.getElementById('cwrap').clientWidth || 900;
   const h = Math.max(440, Math.round(window.innerHeight * 0.52));
-  DC.width  = w; DC.height = h; DC.style.height = h + 'px';
-  SC.width  = w; SC.height = h; SC.style.width  = '100%'; SC.style.height = h + 'px';
+  DC.width  = w; DC.height = h;
+  DC.style.width  = w + 'px'; DC.style.height = h + 'px';
+  SC.width  = w; SC.height = h;
+  SC.style.width  = w + 'px'; SC.style.height = h + 'px';
 }
 sizeCanvas();
 window.addEventListener('resize', sizeCanvas);

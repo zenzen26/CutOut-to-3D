@@ -318,8 +318,8 @@ body::before {
 #drawCanvas {
   display: block;
   width: 100%;
+  min-height: 520px;
   cursor: crosshair;
-  flex: 1;
   background-color: #faf8f2;
   background-image:
     linear-gradient(rgba(90,130,195,.16) 1px, transparent 1px),
