@@ -89,23 +89,8 @@ body::before {
 
 .header-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 5px;
-}
-.washi-row { display: flex; gap: 4px; }
-.washi-bit {
-  width: 32px; height: 10px; border-radius: 1px; opacity: .7;
-}
-.washi-bit::before {
-  content: '';
-  display: block;
-  width: 100%; height: 100%;
-  border-radius: 1px;
-  background-image: repeating-linear-gradient(
-    -45deg, transparent, transparent 3px,
-    rgba(255,255,255,.28) 3px, rgba(255,255,255,.28) 4px
-  );
 }
 
 .step-pills { display: flex; gap: 4px; }
@@ -136,22 +121,8 @@ body::before {
   flex: 1;
 }
 
-.tape {
-  position: absolute; top: -7px; width: 54px; height: 19px;
-  border-radius: 2px; z-index: 20; pointer-events: none;
-}
-.tape-l { left: 26px; background: var(--wp); transform: rotate(-1.5deg); }
-.tape-r { right: 38px; background: var(--ws); transform: rotate(2deg); }
-.tape::after {
-  content: ''; position: absolute; inset: 0; border-radius: 2px;
-  background-image: repeating-linear-gradient(
-    90deg, transparent, transparent 5px,
-    rgba(255,255,255,.22) 5px, rgba(255,255,255,.22) 6px
-  );
-}
-
 /* ═══════════════════════════════════════
-   TOOLBAR — two-row structure
+   TOOLBAR
 ═══════════════════════════════════════ */
 .toolbar {
   background: var(--cream-dark);
@@ -160,48 +131,28 @@ body::before {
   flex-direction: column;
 }
 
-/* Each row */
 .toolbar-row {
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 0;
+  padding: 0 14px;
   height: 44px;
   flex-wrap: nowrap;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0;
 }
 .toolbar-row::-webkit-scrollbar { display: none; }
 
-/* Row B has a top border to visually separate */
 .toolbar-row-b {
   border-top: 1px solid var(--cream-deep);
 }
 
-/* On desktop, collapse both rows into one by showing row-b inline */
-@media (min-width: 769px) {
-  .toolbar {
-    flex-direction: row;
-    height: 48px;
-  }
-  .toolbar-row {
-    height: 48px;
-    flex: none;
-    padding: 0;
-    overflow: visible;
-  }
-  .toolbar-row-a {
-    display: flex;
-    flex: 1;
-    padding: 0 12px;
-  }
-  .toolbar-row-b {
-    display: flex;
-    flex-shrink: 0;
-    border-top: none;
-    border-left: 1px solid var(--cream-deep);
-    padding: 0 12px;
-  }
+/* Actions pushed to far right in row B */
+.tg-actions {
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
 }
 
 /* ── Toolbar elements ── */
@@ -211,15 +162,6 @@ body::before {
   opacity: .4;
   flex-shrink: 0;
   margin: 0 8px;
-}
-
-/* The separator that pushes actions to the far right on desktop */
-.tsep-push {
-  flex: 1;
-  background: transparent;
-  width: auto;
-  margin: 0;
-  opacity: 0;
 }
 
 .tg {
@@ -466,36 +408,14 @@ body::before {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
 /* ══════════════════════════════════════════
    TABLET  (≤ 900px)
 ══════════════════════════════════════════ */
 @media (max-width: 900px) {
   .page { max-width: 100%; padding: 16px 14px 24px; }
-
   .brand-name { font-size: 2rem; }
-
-  /* Stack toolbar into two visible rows */
-  .toolbar {
-    flex-direction: column;
-    height: auto;
-  }
-  .toolbar-row {
-    height: 46px;
-    padding: 0 10px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
-  .toolbar-row-b {
-    border-top: 1px solid var(--cream-deep);
-    border-left: none;
-    padding: 0 10px;
-  }
-  /* tsep-push has no meaning in stacked layout — collapse it */
-  .tsep-push { display: none; }
-  /* Actions sit naturally at the end of row-a when push is gone */
-  .tg:last-child { margin-left: auto; }
-
-  .cwrap { min-height: 400px; }
+  .cwrap { min-height: 380px; }
   .v3d-hint { display: none; }
 }
 
@@ -505,37 +425,30 @@ body::before {
 @media (max-width: 480px) {
   .page { padding: 10px 8px 20px; }
 
-  .brand-name { font-size: 1.6rem; }
+  .brand-name { font-size: 1.5rem; }
   .brand-sub  { font-size: .8rem; }
-  .washi-row  { display: none; }
-
   .pill { padding: 2px 6px; font-size: .58rem; }
 
-  .toolbar-row { height: 44px; padding: 0 8px; gap: 0; }
+  /* Tighter rows on small screens */
+  .toolbar-row { height: 42px; padding: 0 8px; }
 
   .tlbl { font-size: .8rem; }
+  .trange { width: 52px; }
 
-  /* Slightly shorter sliders on small screens */
-  .trange { width: 54px; }
+  .btn { padding: 4px 7px; font-size: .67rem; }
 
-  /* Compact buttons */
-  .btn { padding: 4px 8px; font-size: .68rem; }
-  .btn-svg { padding: 4px 8px; }
-  /* Shorten label on mobile */
-  .btn-svg::before { content: '⬆ SVG'; }
-  .btn-svg { font-size: 0; }
-  .btn-svg::before { font-size: .68rem; }
+  /* Abbreviate SVG stamp button text */
+  #btnSVG { font-size: 0; }
+  #btnSVG::after { content: '⬆ SVG'; font-size: .67rem; }
 
-  .cwrap { min-height: 300px; }
+  .cwrap { min-height: 280px; }
   .cwrap::before { left: 36px; }
 
-  .smsg { font-size: .66rem; }
+  .smsg { font-size: .65rem; }
 
   .v3d-bar { flex-direction: column; align-items: flex-start; padding: 8px 10px; gap: 6px; }
   .v3d-right { width: 100%; justify-content: flex-end; }
 
   .caption { font-size: .82rem; }
-
-  /* Stamp badge: truncate filename tightly */
   .stamp-badge { max-width: 80px; }
 }

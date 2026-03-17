@@ -5,15 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PaperCut</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Eraser button active state */
-    .btn-eraser.on {
-      background: #e8c5bf !important;
-      color: #5a2a1a !important;
-      border-color: #c0392b !important;
-      box-shadow: 0 0 0 2px rgba(192,57,43,0.25);
-    }
-  </style>
   <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
@@ -29,12 +20,6 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="washi-row">
-        <div class="washi-bit" style="background:#e8c5bf"></div>
-        <div class="washi-bit" style="background:#b8c9b0"></div>
-        <div class="washi-bit" style="background:#b0c4d8"></div>
-        <div class="washi-bit" style="background:#d4c4a0"></div>
-      </div>
       <div class="step-pills">
         <div class="pill on" id="p1">① draw</div>
         <div class="pill"    id="p2">② cut</div>
@@ -45,74 +30,62 @@
 
   <!-- CARD -->
   <div class="card">
-    <div class="tape tape-l"></div>
-    <div class="tape tape-r"></div>
 
-    <!-- TOOLBAR -->
+    <!-- TOOLBAR: Row A = colours/tools, Row B = sliders/actions -->
     <div class="toolbar">
 
-      <!-- Pen colours -->
-      <div class="tg">
-        <span class="tlbl">pen</span>
-        <div class="cdot on" style="background:#c0392b" data-c="#c0392b"></div>
-        <div class="cdot"    style="background:#2c5f8a" data-c="#2c5f8a"></div>
-        <div class="cdot"    style="background:#3a6b4a" data-c="#3a6b4a"></div>
-        <div class="cdot"    style="background:#2b2318" data-c="#2b2318"></div>
-        <div class="cdot"    style="background:#6b3a6b" data-c="#6b3a6b"></div>
-        <div class="cdot"    style="background:#c17f24" data-c="#c17f24"></div>
-      </div>
-
-      <div class="tsep"></div>
-
-      <!-- Brush size -->
-      <div class="tg">
-        <span class="tlbl">size</span>
-        <input type="range" class="trange" id="bsz" min="2" max="14" value="4">
-        <div class="szpv">
-          <div class="szdot" id="szdot" style="width:4px;height:4px"></div>
+      <!-- ROW A: pen colours · eraser · SVG stamp -->
+      <div class="toolbar-row toolbar-row-a">
+        <div class="tg">
+          <span class="tlbl">pen</span>
+          <div class="cdot on" style="background:#c0392b" data-c="#c0392b"></div>
+          <div class="cdot"    style="background:#2c5f8a" data-c="#2c5f8a"></div>
+          <div class="cdot"    style="background:#3a6b4a" data-c="#3a6b4a"></div>
+          <div class="cdot"    style="background:#2b2318" data-c="#2b2318"></div>
+          <div class="cdot"    style="background:#6b3a6b" data-c="#6b3a6b"></div>
+          <div class="cdot"    style="background:#c17f24" data-c="#c17f24"></div>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg">
+          <button class="btn btn-eraser" id="btnEraser">◻ Eraser</button>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg">
+          <button class="btn btn-svg" id="btnSVG">⬆ SVG stamp</button>
+          <div class="stamp-badge" id="stampBadge">
+            <span id="stampName">shape.svg</span>
+            <span class="stamp-badge-x" id="stampClear">✕</span>
+          </div>
+          <input type="file" id="svgFileIn" accept=".svg,image/svg+xml">
         </div>
       </div>
 
-      <div class="tsep"></div>
-
-      <!-- Stroke stabiliser -->
-      <div class="tg">
-        <span class="tlbl">smooth</span>
-        <input type="range" class="trange" id="stabSlider" min="0" max="16" value="4" step="1">
-        <span class="stab-val" id="stabVal">4</span>
-      </div>
-
-      <div class="tsep"></div>
-
-      <!-- Eraser -->
-      <div class="tg">
-        <button class="btn btn-eraser" id="btnEraser">◻ Eraser</button>
-        <input type="range" class="trange" id="esz" min="6" max="48" value="16">
-        <div class="szpv">
-          <div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div>
+      <!-- ROW B: sliders · actions -->
+      <div class="toolbar-row toolbar-row-b">
+        <div class="tg">
+          <span class="tlbl">size</span>
+          <input type="range" class="trange" id="bsz" min="2" max="14" value="4">
+          <div class="szpv"><div class="szdot" id="szdot" style="width:4px;height:4px"></div></div>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg">
+          <span class="tlbl">smooth</span>
+          <input type="range" class="trange" id="stabSlider" min="0" max="16" value="4" step="1">
+          <span class="stab-val" id="stabVal">4</span>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg">
+          <span class="tlbl">eraser</span>
+          <input type="range" class="trange" id="esz" min="6" max="48" value="16">
+          <div class="szpv"><div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div></div>
+        </div>
+        <div class="tg tg-actions">
+          <button class="btn btn-ghost" id="btnClear">Clear</button>
+          <button class="btn btn-cut"   id="btnCut"   disabled>✂ Cut Out</button>
+          <button class="btn btn-3d"    id="btn3d"    disabled>⬡ 3D</button>
         </div>
       </div>
 
-      <div class="tsep"></div>
-
-      <!-- SVG stamp upload -->
-      <div class="tg">
-        <button class="btn btn-svg" id="btnSVG">⬆ SVG stamp</button>
-        <div class="stamp-badge" id="stampBadge">
-          <span id="stampName">shape.svg</span>
-          <span class="stamp-badge-x" id="stampClear">✕</span>
-        </div>
-        <input type="file" id="svgFileIn" accept=".svg,image/svg+xml">
-      </div>
-
-      <div class="tsep"></div>
-
-      <!-- Action buttons -->
-      <div class="tg" style="margin-left:auto;">
-        <button class="btn btn-ghost" id="btnClear">Clear</button>
-        <button class="btn btn-cut"   id="btnCut"   disabled>✂ Cut Out</button>
-        <button class="btn btn-3d"    id="btn3d"    disabled>⬡ View 3D</button>
-      </div>
     </div>
 
     <!-- CANVAS AREA -->
@@ -147,9 +120,7 @@
 
 </div><!-- end .page -->
 
-<!-- Three.js (required for 3D view) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<!-- App logic -->
 <script src="main.js"></script>
 </body>
 </html>
