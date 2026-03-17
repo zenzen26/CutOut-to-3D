@@ -109,7 +109,6 @@
           <div class="v3d-right">
             <span class="v3d-hint">drag · scroll · right-drag pan</span>
             <button class="btn-dk accent" id="btnGLB">⬇ Export GLB</button>
-            <button class="btn-dk"        id="btnBack">✏ Edit</button>
           </div>
         </div>
         <div class="vstack" id="vstack">
@@ -130,7 +129,7 @@
 </div><!-- end .page -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="main.js"></script>
+<script type="module" src="app.js"></script>
 <script>
   // Mirror mobile Row C buttons to the real desktop ones
   function mirrorBtn(mobileId, realId) {
