@@ -132,42 +132,62 @@ DC.addEventListener('touchend',   iend);
 // ═══════════════════════════════════════════════════════════════════
 // TOOLBAR CONTROLS
 // ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// UNIFIED MODE SWITCHER  (pen | eraser | stamp — only one at a time)
+// ═══════════════════════════════════════════════════════════════════
+// 'pen' | 'eraser' | 'stamp'
+let activeMode = 'pen';
+
+function setMode(mode) {
+  // ── tear down current mode ──
+  eraserMode = false;
+  stampMode  = false;
+  document.getElementById('btnEraser').classList.remove('on');
+  clearStampCursor();
+  SC.style.display = 'none';
+  DC.style.cursor  = 'crosshair';
+  CTX.globalCompositeOperation = 'source-over';
+
+  activeMode = mode;
+
+  if (mode === 'eraser') {
+    eraserMode = true;
+    document.getElementById('btnEraser').classList.add('on');
+    SC.style.display = 'block';
+    DC.style.cursor  = 'none';
+    setSt('draw', 'Eraser active — drag to erase. Click Eraser again to switch back to pen.');
+
+  } else if (mode === 'stamp') {
+    stampMode = true;
+    SC.style.display = 'block';
+    DC.style.cursor  = 'none';
+    document.getElementById('stampBadge').classList.add('on');
+    document.getElementById('stampName').textContent = svgName;
+    setSt('stamp', 'Move over canvas to preview · click to stamp outline in pen colour');
+    document.getElementById('caption').textContent = 'stamp mode 🍪';
+
+  } else {
+    // pen — status depends on canvas state
+    if (hasCut) setSt('cut', 'Back to drawing.');
+    else if (hasStroke) setSt('draw', 'Close your shape then click Cut Out ✂');
+    else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
+  }
+}
+
+// Colour dots → switch to pen
 document.querySelectorAll('.cdot').forEach(d => {
   d.addEventListener('click', () => {
     document.querySelectorAll('.cdot').forEach(x => x.classList.remove('on'));
     d.classList.add('on');
     penColor = d.dataset.c;
-    // switching to a colour exits eraser mode
-    if (eraserMode) deactivateEraser();
+    setMode('pen');
   });
 });
 
-// ── Eraser button ──
+// Eraser button toggles between eraser and pen
 document.getElementById('btnEraser').addEventListener('click', () => {
-  if (eraserMode) deactivateEraser();
-  else            activateEraser();
+  setMode(activeMode === 'eraser' ? 'pen' : 'eraser');
 });
-
-function activateEraser() {
-  eraserMode = true;
-  document.getElementById('btnEraser').classList.add('on');
-  DC.style.cursor = 'none';
-  SC.style.display = 'block';
-  setSt('draw', 'Eraser active — drag to erase. Click Eraser again to go back to pen.');
-}
-
-function deactivateEraser() {
-  eraserMode = false;
-  document.getElementById('btnEraser').classList.remove('on');
-  clearStampCursor();
-  if (!stampMode) {
-    SC.style.display = 'none';
-    DC.style.cursor  = 'crosshair';
-  }
-  if (hasCut) setSt('cut', 'Back to drawing.');
-  else if (hasStroke) setSt('draw', 'Close your shape then click Cut Out ✂');
-  else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
-}
 
 // Circular preview cursor for eraser
 function drawEraserCursor(p) {
@@ -263,14 +283,8 @@ document.getElementById('svgFileIn').addEventListener('change', e => {
         svgAlphaMask[i] = px[i * 4 + 3] > 20 ? 1 : 0;
       svgImg = tmpImg;
 
-      // Enter stamp mode
-      stampMode = true;
-      SC.style.display = 'block';
-      DC.style.cursor  = 'none';
-      document.getElementById('stampBadge').classList.add('on');
-      document.getElementById('stampName').textContent = svgName;
-      setSt('stamp', 'Move over canvas to preview · click to stamp outline in pen colour');
-      document.getElementById('caption').textContent = 'stamp mode 🍪';
+      // Enter stamp mode (also deactivates eraser / pen cursor)
+      setMode('stamp');
       e.target.value = '';
     };
     tmpImg.onerror = () => alert('Could not load SVG. Ensure it is a valid .svg file.');
@@ -282,13 +296,9 @@ document.getElementById('svgFileIn').addEventListener('change', e => {
 document.getElementById('stampClear').addEventListener('click', clearStamp);
 
 function clearStamp() {
-  svgImg = null; svgAlphaMask = null; stampMode = false;
-  SC.style.display = 'none';
-  DC.style.cursor  = 'crosshair';
+  svgImg = null; svgAlphaMask = null; svgName = '';
   document.getElementById('stampBadge').classList.remove('on');
-  clearStampCursor();
-  if (hasCut) setSt('cut', 'Stamp cleared.');
-  else setSt('', 'Draw a closed outline, or upload an SVG stamp — then click Cut Out ✂');
+  setMode('pen');
 }
 
 // Ghost preview of stamp outline on the cursor overlay canvas
