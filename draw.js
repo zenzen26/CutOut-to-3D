@@ -18,6 +18,40 @@ export let lastDrawPt = null;
 export let eraserMode = false;
 export let eraserSize = 16;
 
+// ── Undo stack (up to 10 strokes) ─────────────────────────────────
+const MAX_UNDO = 10;
+const undoStack = [];
+
+function pushUndo() {
+  const snap = CTX.getImageData(0, 0, DC.width, DC.height);
+  undoStack.push(snap);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('btnUndo');
+  if (btn) btn.disabled = undoStack.length === 0;
+}
+
+export function undoStroke() {
+  if (!undoStack.length) return;
+  const snap = undoStack.pop();
+  CTX.putImageData(snap, 0, 0);
+  // update hasStroke by checking if any pixel is drawn
+  const d = CTX.getImageData(0, 0, DC.width, DC.height).data;
+  hasStroke = false;
+  for (let i = 3; i < d.length; i += 4) { if (d[i] > 30) { hasStroke = true; break; } }
+  if (!hasStroke) {
+    document.getElementById('btn3d').disabled = true;
+    setSt('', 'Draw a closed outline, or upload an SVG stamp — then click ⬡ 3D');
+    document.getElementById('caption').textContent = 'untitled clipping';
+  } else {
+    setSt('draw', 'Looking good — click ⬡ 3D when ready!');
+  }
+  updateUndoBtn();
+}
+
 // stamp state (owned here so draw.js can check stampMode in istart/imove)
 export let stampMode  = false;
 export let svgName    = '';
@@ -65,7 +99,8 @@ function getSmoothedPoint(raw) {
 
 // ── Drawing event handlers ─────────────────────────────────────────
 function istart(e) {
-  if (stampMode) { doStamp(dpos(e)); return; }
+  if (stampMode) { pushUndo(); doStamp(dpos(e)); return; }
+  pushUndo();
   inking = true;
   stabPoints = [];
   const p = dpos(e);
@@ -224,11 +259,15 @@ document.getElementById('btnClearAll').addEventListener('click', () => {
   CTX.clearRect(0, 0, DC.width, DC.height);
   hasStroke = hasCut = false;
   DC._rawDrawing = null; DC._outside = null;
+  undoStack.length = 0;
+  updateUndoBtn();
   document.getElementById('btn3d').disabled        = true;
   document.getElementById('btnEdit').style.display = 'none';
   setSt('', 'Draw a closed outline, or upload an SVG stamp — then click ⬡ 3D');
   document.getElementById('caption').textContent = 'untitled clipping';
 });
+
+document.getElementById('btnUndo').addEventListener('click', undoStroke);
 
 document.getElementById('btnEdit').addEventListener('click', () => {
   document.getElementById('v3d').classList.remove('on');
@@ -237,6 +276,10 @@ document.getElementById('btnEdit').addEventListener('click', () => {
   hasCut = false;
   document.getElementById('btn3d').disabled        = false;
   document.getElementById('btnEdit').style.display = 'none';
+  ['btnUndo', 'btnClearAll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.visibility = '';
+  });
   setSt('draw', 'Back to drawing — click ⬡ 3D when ready!');
   document.getElementById('caption').textContent = 'editing ✏';
 });

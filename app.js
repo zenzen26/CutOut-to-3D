@@ -9,9 +9,18 @@ import { setSt, setHasCut }         from './draw.js';
 import { DC, CTX }                  from './canvas.js';
 
 // ── 3D button ──────────────────────────────────────────────────────
+function setDrawActionsVisible(v) {
+  const ids = ['btnUndo', 'btnClearAll'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.visibility = v ? '' : 'hidden';
+  });
+}
+
 document.getElementById('btn3d').addEventListener('click', () => {
   doCut();
   document.getElementById('v3d').classList.add('on');
+  setDrawActionsVisible(false);
   setSt('d3', '3D — drag to rotate · scroll to zoom · right-drag to pan');
   document.getElementById('caption').textContent = '3D float ✦';
   requestAnimationFrame(() => requestAnimationFrame(init3D));
