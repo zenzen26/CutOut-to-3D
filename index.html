@@ -82,6 +82,7 @@
         </div>
         <!-- Visible on tablet/desktop, hidden on mobile -->
         <div class="tg tg-actions hide-mobile">
+          <button class="btn btn-icon" id="btnUndo" title="Undo last stroke" disabled>↩ Undo</button>
           <button class="btn btn-icon" id="btnClearAll" title="Clear all">🗑</button>
           <button class="btn btn-ghost" id="btnEdit" style="display:none">✏ Edit</button>
           <button class="btn btn-3d"    id="btn3d"    disabled>⬡ 3D</button>
@@ -90,6 +91,7 @@
 
       <!-- ROW C: actions — mobile only -->
       <div class="toolbar-row toolbar-row-c show-mobile-only">
+        <button class="btn btn-icon" id="btnUndoM" title="Undo last stroke" disabled>↩ Undo</button>
         <button class="btn btn-icon" id="btnClearAllM" title="Clear all">🗑</button>
         <button class="btn btn-ghost" id="btnEditM" style="display:none">✏ Edit</button>
         <button class="btn btn-3d"    id="btn3dM"   disabled>⬡ 3D</button>
@@ -146,6 +148,7 @@
     m.style.display = r.style.display;
     m.addEventListener('click', () => r.click());
   }
+  mirrorBtn('btnUndoM',    'btnUndo');
   mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnClearAllM','btnClearAll');
   mirrorBtn('btnEditM',   'btnEdit');
