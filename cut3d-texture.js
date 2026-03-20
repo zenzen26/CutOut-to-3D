@@ -6,6 +6,7 @@ const sideTextureReadyListeners = new Set();
 
 const SIDE_TEXTURE_MULTIPLY_ALPHA = 1.8;
 const SIDE_TEXTURE_SOFT_LIGHT_ALPHA = 0.5;
+const FACE_EDGE_DILATION_PX = 2;
 
 sideTextureOverlay.src = './cardboard-texture.jpg';
 sideTextureOverlay.addEventListener('load', () => {
@@ -70,7 +71,51 @@ function buildBackTextureCanvas(frontCanvas, outside, MW, MH) {
 export function buildTextureCanvases(outside, MW, MH, img) {
   const frontCanvas = buildFrontTextureCanvas(img, MW, MH);
   const backCanvas = buildBackTextureCanvas(frontCanvas, outside, MW, MH);
+  dilateOpaqueEdges(frontCanvas, FACE_EDGE_DILATION_PX);
+  dilateOpaqueEdges(backCanvas, FACE_EDGE_DILATION_PX);
   return { frontCanvas, backCanvas };
+}
+
+function dilateOpaqueEdges(canvas, passes) {
+  if (!passes) return;
+
+  const ctx = canvas.getContext('2d');
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let src = new Uint8ClampedArray(img.data);
+  const w = canvas.width;
+  const h = canvas.height;
+
+  for (let pass = 0; pass < passes; pass++) {
+    const next = new Uint8ClampedArray(src);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (src[i + 3] > 0) continue;
+
+        let found = -1;
+        for (let ny = Math.max(0, y - 1); ny <= Math.min(h - 1, y + 1) && found === -1; ny++) {
+          for (let nx = Math.max(0, x - 1); nx <= Math.min(w - 1, x + 1); nx++) {
+            if (nx === x && ny === y) continue;
+            const ni = (ny * w + nx) * 4;
+            if (src[ni + 3] > 0) {
+              found = ni;
+              break;
+            }
+          }
+        }
+
+        if (found === -1) continue;
+        next[i] = src[found];
+        next[i + 1] = src[found + 1];
+        next[i + 2] = src[found + 2];
+        next[i + 3] = src[found + 3];
+      }
+    }
+    src = next;
+  }
+
+  img.data.set(src);
+  ctx.putImageData(img, 0, 0);
 }
 
 export function buildCardboardSideTexture() {
