@@ -176,6 +176,32 @@ body::before {
   white-space: nowrap;
 }
 
+.color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#penColorPicker {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--kraft-dk);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+#penColorPicker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+#penColorPicker::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
 /* colour dots */
 .cdot {
   width: 18px; height: 18px; border-radius: 50%;
@@ -268,6 +294,30 @@ body::before {
 }
 .btn-svg:hover { background: #245070; transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #0f2438; }
 
+.btn-tool {
+  background: var(--cream);
+  border: 1.5px solid var(--kraft-dk);
+  color: var(--ink-lt);
+  box-shadow: 2px 2px 0 var(--kraft);
+  padding: 5px 9px;
+}
+
+.btn-tool:hover {
+  background: var(--cream-deep);
+  border-color: var(--ink-lt);
+}
+
+.btn-tool.on {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--kraft-dk);
+}
+
+.btn-tool.on .btn-icon-img {
+  filter: brightness(0) invert(1);
+}
+
 /* toolbar icon images */
 .tlbl-icon {
   width: 18px; height: 18px;
@@ -325,20 +375,90 @@ body::before {
   transform: none !important; box-shadow: none !important;
 }
 
-/* SVG stamp badge */
-.stamp-badge {
-  display: none; align-items: center; gap: 4px; flex-shrink: 0;
-  background: rgba(44,95,138,.12);
-  border: 1px solid rgba(44,95,138,.3);
-  border-radius: 2px; padding: 3px 7px;
-  font-size: .68rem; color: #2c5f8a;
-  font-family: 'DM Sans', sans-serif; font-weight: 500;
-  max-width: 120px; overflow: hidden;
+.stamp-slots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.stamp-badge.on { display: flex; }
-.stamp-badge-x { cursor: pointer; opacity: .6; font-size: .8rem; margin-left: 2px; flex-shrink: 0; }
-.stamp-badge-x:hover { opacity: 1; }
-#stampName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.stamp-slot-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.stamp-slot {
+  min-width: 34px;
+  max-width: 82px;
+  padding: 4px 7px;
+  border: 1px solid rgba(44,95,138,.26);
+  border-radius: 2px;
+  background: rgba(44,95,138,.08);
+  color: rgba(44,95,138,.42);
+  font-size: .66rem;
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stamp-slot:hover:not(:disabled) {
+  background: rgba(44,95,138,.14);
+  color: #2c5f8a;
+}
+
+.stamp-slot:disabled {
+  cursor: default;
+  opacity: .65;
+}
+
+.stamp-slot.loaded {
+  color: #2c5f8a;
+  background: rgba(44,95,138,.12);
+}
+
+.stamp-slot.selected {
+  border-color: rgba(44,95,138,.46);
+  box-shadow: inset 0 0 0 1px rgba(44,95,138,.18);
+}
+
+.stamp-slot.tool-on {
+  background: #2c5f8a;
+  border-color: #1a3d5c;
+  color: #fff;
+}
+
+.stamp-slot-clear {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(43,35,24,.18);
+  border-radius: 50%;
+  background: #fff7ef;
+  color: #7b4b3c;
+  font-size: .6rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.14);
+}
+
+.stamp-slot-wrap.loaded .stamp-slot-clear {
+  display: inline-flex;
+}
+
+.stamp-slot-clear:hover {
+  background: #f4ddd7;
+  color: #9c3426;
+}
+
+.stamp-size { display: none; }
+.stamp-size.on { display: flex; }
 
 /* ── Canvas ── */
 .cwrap {
@@ -485,17 +605,64 @@ body::before {
   .toolbar-row-c  { display: flex; }
   .hide-mobile    { display: none !important; }
 
-  /* Tighter rows on small screens */
-  .toolbar-row { height: 42px; padding: 0 8px; }
+  /* Three stacked toolbar rows without horizontal scrolling */
+  .toolbar-row {
+    min-height: 44px;
+    height: auto;
+    padding: 8px;
+    overflow: visible;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .toolbar-row .tsep {
+    display: none;
+  }
+
+  .toolbar-row-a .tg,
+  .toolbar-row-b .tg {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-row-b .tg {
+    flex: 1 1 128px;
+    min-width: 0;
+  }
+
+  .toolbar-row-c {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+    height: auto;
+  }
+
+  .toolbar-row-c .btn {
+    width: 100%;
+    justify-content: center;
+  }
 
   .tlbl { font-size: .8rem; }
-  .trange { width: 52px; }
+  .trange { width: 64px; }
 
   .btn { padding: 4px 7px; font-size: .67rem; }
 
-  /* Abbreviate SVG stamp button text */
-  #btnSVG { font-size: 0; }
-  #btnSVG::after { content: '⬆ SVG'; font-size: .67rem; }
+  #btnSVG {
+    font-size: .67rem;
+  }
+
+  .stamp-slots {
+    flex-wrap: wrap;
+  }
+
+  .stamp-slot {
+    max-width: 72px;
+  }
+
+  .stamp-size {
+    width: 100%;
+  }
 
   .cwrap::before { left: 36px; }
 
@@ -507,5 +674,4 @@ body::before {
   .v3d-range { width: 120px; }
 
   .caption { font-size: .82rem; }
-  .stamp-badge { max-width: 80px; }
 }

@@ -28,4 +28,4 @@ document.getElementById('btn3d').addEventListener('click', () => {
 });
 
 // ── Boot ───────────────────────────────────────────────────────────
-setSt('', '');
+setSt('', 'Draw a closed outline, or upload an SVG stamp - then click 3D');
