@@ -19,6 +19,7 @@ function setDrawActionsVisible(v) {
 
 document.getElementById('btn3d').addEventListener('click', () => {
   doCut();
+  document.getElementById('btn3d').disabled = true;
   document.getElementById('v3d').classList.add('on');
   setDrawActionsVisible(false);
   setSt('d3', '3D — drag to rotate · scroll to zoom · right-drag to pan');
