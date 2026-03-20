@@ -136,7 +136,6 @@
               <input type="range" id="depth3d" class="v3d-range" min="0" max="20" step="1" value="0">
               <span class="v3d-depth-val" id="depth3dVal">0</span>
             </label>
-            <span class="v3d-hint">drag · scroll · right-drag pan</span>
             <button class="btn-dk accent" id="btnGLB">⬇ Export GLB</button>
           </div>
         </div>
@@ -177,8 +176,8 @@
     m.addEventListener('click', () => r.click());
   }
   mirrorBtn('btnUndoM',    'btnUndo');
-  mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnClearAllM','btnClearAll');
+  mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnEditM',   'btnEdit');
 </script>
 </body>

@@ -1,5 +1,5 @@
 import { DC, CTX, SC, SCTX } from './canvas.js';
-import { penColor, penSize, setHasStroke, setMode, setSt } from './draw.js';
+import { penColor, penSize, setHasStroke, setMode, setSt, sync3DButtonToCanvas } from './draw.js';
 
 const MAX_STAMPS = 3;
 const BASE_STAMP_SIZE = 150;
@@ -316,8 +316,7 @@ export function doStamp(p) {
   CTX.restore();
 
   drawStampCursor(p);
-  setHasStroke(true);
-  document.getElementById('btn3d').disabled = false;
+  setHasStroke(sync3DButtonToCanvas());
   setSt('stamp', `Stamped ${stamp.name}. Click again to add more, or click 3D`);
   document.getElementById('caption').textContent = 'stamped';
 }

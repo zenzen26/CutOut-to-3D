@@ -669,9 +669,9 @@ body::before {
   .smsg { font-size: .65rem; }
 
   .v3d-bar { flex-direction: column; align-items: flex-start; padding: 8px 10px; gap: 6px; }
-  .v3d-right { width: 100%; justify-content: flex-end; }
-  .v3d-depth { width: 100%; justify-content: flex-end; }
-  .v3d-range { width: 120px; }
+  .v3d-right { width: auto; justify-content: flex-end; align-items: center; flex-wrap: nowrap; margin-left: auto; }
+  .v3d-depth { width: auto; justify-content: flex-end; flex: 0 0 auto; min-width: 0; }
+  .v3d-range { width: 84px; }
 
   .caption { font-size: .82rem; }
 }

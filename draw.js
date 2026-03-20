@@ -30,22 +30,30 @@ function updateUndoBtn() {
   if (btn) btn.disabled = undoStack.length === 0;
 }
 
+function canvasHasVisibleStroke() {
+  const d = CTX.getImageData(0, 0, DC.width, DC.height).data;
+  for (let i = 3; i < d.length; i += 4) {
+    if (d[i] > 30) return true;
+  }
+  return false;
+}
+
+export function sync3DButtonToCanvas() {
+  const hasPixels = canvasHasVisibleStroke();
+  hasStroke = hasPixels;
+  const btn3d = document.getElementById('btn3d');
+  if (btn3d) btn3d.disabled = !hasPixels;
+  return hasPixels;
+}
+
 export function undoStroke() {
   if (!undoStack.length) return;
   const snap = undoStack.pop();
   CTX.putImageData(snap, 0, 0);
 
-  const d = CTX.getImageData(0, 0, DC.width, DC.height).data;
-  hasStroke = false;
-  for (let i = 3; i < d.length; i += 4) {
-    if (d[i] > 30) {
-      hasStroke = true;
-      break;
-    }
-  }
+  const hasPixels = sync3DButtonToCanvas();
 
-  if (!hasStroke) {
-    document.getElementById('btn3d').disabled = true;
+  if (!hasPixels) {
     setSt('', 'Draw a closed outline, or upload an SVG stamp - then click 3D');
     document.getElementById('caption').textContent = 'untitled clipping';
   } else {
@@ -142,8 +150,7 @@ function imove(e) {
   lastDrawPt = p;
 
   if (!eraserMode && !hasStroke) {
-    hasStroke = true;
-    document.getElementById('btn3d').disabled = false;
+    sync3DButtonToCanvas();
     setSt('draw', 'Looking good - click 3D when ready!');
   }
 }
@@ -153,6 +160,7 @@ function iend() {
   stabPoints = [];
   lastDrawPt = null;
   CTX.globalCompositeOperation = 'source-over';
+  sync3DButtonToCanvas();
 }
 
 DC.addEventListener('mousedown', istart);
@@ -293,14 +301,19 @@ document.getElementById('stabSlider').addEventListener('input', e => {
 });
 
 document.getElementById('btnClearAll').addEventListener('click', () => {
+  if (hasStroke || hasCut || canvasHasVisibleStroke()) {
+    pushUndo();
+  }
   CTX.clearRect(0, 0, DC.width, DC.height);
   hasStroke = false;
   hasCut = false;
   DC._rawDrawing = null;
   DC._outside = null;
-  undoStack.length = 0;
+  DC._stroke = null;
+  DC._dispImg = null;
+  DC._texImg = null;
+  sync3DButtonToCanvas();
   updateUndoBtn();
-  document.getElementById('btn3d').disabled = true;
   document.getElementById('btnEdit').style.display = 'none';
   setSt('', 'Draw a closed outline, or upload an SVG stamp - then click 3D');
   document.getElementById('caption').textContent = 'untitled clipping';
@@ -313,15 +326,16 @@ document.getElementById('btnEdit').addEventListener('click', () => {
   destroy3D();
   if (DC._rawDrawing) CTX.putImageData(DC._rawDrawing, 0, 0);
   hasCut = false;
-  document.getElementById('btn3d').disabled = false;
   document.getElementById('btnEdit').style.display = 'none';
-  ['btnUndo', 'btnClearAll'].forEach(id => {
+  ['btnUndo', 'btnClearAll', 'btn3d'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.visibility = '';
+    if (el) el.style.display = '';
   });
+  sync3DButtonToCanvas();
   setSt('draw', 'Back to drawing - click 3D when ready!');
   document.getElementById('caption').textContent = 'editing';
 });
 
 syncPenColorUI(penColor);
 updateToolButtons();
+sync3DButtonToCanvas();
