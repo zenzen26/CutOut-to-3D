@@ -33,10 +33,22 @@
     <!-- TOOLBAR: Row A = colours/tools, Row B = sliders/actions -->
     <div class="toolbar">
 
-      <!-- ROW A: pen colours · eraser · SVG stamp -->
+      <!-- ROW A: pen · eraser · colours · SVG stamps -->
       <div class="toolbar-row toolbar-row-a">
         <div class="tg">
-          <img src="https://img.icons8.com/ios-filled/20/2b2318/pen.png" alt="pen" class="tlbl-icon" title="Pen">
+          <button class="btn btn-tool on" id="btnPen" title="Pen">
+            <img src="https://img.icons8.com/ios-filled/16/2b2318/pen.png" alt="pen" class="btn-icon-img">
+          </button>
+          <button class="btn btn-eraser" id="btnEraser" title="Eraser">
+            <img src="https://img.icons8.com/ios-filled/16/2b2318/eraser.png" alt="eraser" class="btn-icon-img" id="eraserIconImg">
+          </button>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg">
+          <label class="color-picker" for="penColorPicker" title="Pen color">
+            <span class="tlbl">color</span>
+            <input type="color" id="penColorPicker" value="#c0392b">
+          </label>
           <div class="cdot on" style="background:#c0392b" data-c="#c0392b"></div>
           <div class="cdot"    style="background:#2c5f8a" data-c="#2c5f8a"></div>
           <div class="cdot"    style="background:#3a6b4a" data-c="#3a6b4a"></div>
@@ -46,16 +58,20 @@
         </div>
         <div class="tsep"></div>
         <div class="tg">
-          <button class="btn btn-eraser" id="btnEraser" title="Eraser">
-            <img src="https://img.icons8.com/ios-filled/16/2b2318/eraser.png" alt="eraser" class="btn-icon-img" id="eraserIconImg">
-          </button>
-        </div>
-        <div class="tsep"></div>
-        <div class="tg">
-          <button class="btn btn-svg" id="btnSVG">⬆ SVG stamp</button>
-          <div class="stamp-badge" id="stampBadge">
-            <span id="stampName">shape.svg</span>
-            <span class="stamp-badge-x" id="stampClear">✕</span>
+          <button class="btn btn-svg" id="btnSVG" title="Upload into the next empty stamp slot, or replace the selected slot when full">⬆ SVG stamp</button>
+          <div class="stamp-slots" id="stampSlots">
+            <div class="stamp-slot-wrap" id="stampSlotWrap0">
+              <button class="stamp-slot" id="stampSlot0" data-slot="0" title="Stamp 1">1</button>
+              <button class="stamp-slot-clear" id="stampSlotClear0" title="Remove stamp 1" aria-label="Remove stamp 1">✕</button>
+            </div>
+            <div class="stamp-slot-wrap" id="stampSlotWrap1">
+              <button class="stamp-slot" id="stampSlot1" data-slot="1" title="Stamp 2">2</button>
+              <button class="stamp-slot-clear" id="stampSlotClear1" title="Remove stamp 2" aria-label="Remove stamp 2">✕</button>
+            </div>
+            <div class="stamp-slot-wrap" id="stampSlotWrap2">
+              <button class="stamp-slot" id="stampSlot2" data-slot="2" title="Stamp 3">3</button>
+              <button class="stamp-slot-clear" id="stampSlotClear2" title="Remove stamp 3" aria-label="Remove stamp 3">✕</button>
+            </div>
           </div>
           <input type="file" id="svgFileIn" accept=".svg,image/svg+xml">
         </div>
@@ -64,14 +80,14 @@
       <!-- ROW B: sliders + actions (actions hidden on mobile) -->
       <div class="toolbar-row toolbar-row-b">
         <div class="tg">
-          <span class="tlbl">size</span>
+          <span class="tlbl">pen</span>
           <input type="range" class="trange" id="bsz" min="1" max="50" value="4">
           <div class="szpv"><div class="szdot" id="szdot" style="width:4px;height:4px"></div></div>
         </div>
         <div class="tsep"></div>
         <div class="tg">
           <span class="tlbl">smooth</span>
-          <input type="range" class="trange" id="stabSlider" min="0" max="16" value="4" step="1">
+          <input type="range" class="trange" id="stabSlider" min="0" max="30" value="5" step="1">
           <span class="stab-val" id="stabVal">4</span>
         </div>
         <div class="tsep"></div>
@@ -79,6 +95,12 @@
           <span class="tlbl">eraser</span>
           <input type="range" class="trange" id="esz" min="6" max="50" value="16">
           <div class="szpv"><div class="szdot" id="ezdot" style="width:16px;height:16px;border-radius:50%;background:transparent;border:2px solid #999;box-sizing:border-box;"></div></div>
+        </div>
+        <div class="tsep"></div>
+        <div class="tg stamp-size" id="stampSizeWrap">
+          <span class="tlbl">stamp</span>
+          <input type="range" class="trange" id="stampScale" min="30" max="250" value="100">
+          <span class="stab-val" id="stampScaleVal">100%</span>
         </div>
         <!-- Visible on tablet/desktop, hidden on mobile -->
         <div class="tg tg-actions hide-mobile">
@@ -109,7 +131,11 @@
         <div class="v3d-bar">
           <span class="v3d-lbl">✂ 3D Mode</span>
           <div class="v3d-right">
-            <span class="v3d-hint">drag · scroll · right-drag pan</span>
+            <label class="v3d-depth" for="depth3d">
+              <span class="v3d-depth-lbl">depth</span>
+              <input type="range" id="depth3d" class="v3d-range" min="0" max="20" step="1" value="0">
+              <span class="v3d-depth-val" id="depth3dVal">0</span>
+            </label>
             <button class="btn-dk accent" id="btnGLB">⬇ Export GLB</button>
           </div>
         </div>
@@ -150,8 +176,8 @@
     m.addEventListener('click', () => r.click());
   }
   mirrorBtn('btnUndoM',    'btnUndo');
-  mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnClearAllM','btnClearAll');
+  mirrorBtn('btn3dM',     'btn3d');
   mirrorBtn('btnEditM',   'btnEdit');
 </script>
 </body>

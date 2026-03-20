@@ -10,10 +10,10 @@ import { DC, CTX }                  from './canvas.js';
 
 // ── 3D button ──────────────────────────────────────────────────────
 function setDrawActionsVisible(v) {
-  const ids = ['btnUndo', 'btnClearAll'];
+  const ids = ['btnUndo', 'btnClearAll', 'btn3d'];
   ids.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.visibility = v ? '' : 'hidden';
+    if (el) el.style.display = v ? '' : 'none';
   });
 }
 
@@ -28,4 +28,4 @@ document.getElementById('btn3d').addEventListener('click', () => {
 });
 
 // ── Boot ───────────────────────────────────────────────────────────
-setSt('', '');
+setSt('', 'Draw a closed outline, or upload an SVG stamp - then click 3D');
