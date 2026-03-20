@@ -5,6 +5,19 @@ import { DC, CTX } from './canvas.js';
 import { setSt, setHasCut } from './draw.js';
 import { clearStamp }       from './stamp.js';
 
+const sideTextureOverlay = new Image();
+let sideTextureOverlayReady = false;
+const SIDE_TEXTURE_MULTIPLY_ALPHA = 1.8;
+const SIDE_TEXTURE_SOFT_LIGHT_ALPHA = 0.5;
+sideTextureOverlay.src = './cardboard-texture.jpg';
+sideTextureOverlay.addEventListener('load', () => {
+  sideTextureOverlayReady = true;
+  const v3d = document.getElementById('v3d');
+  if (v3d && v3d.classList.contains('on') && DC._outside) {
+    requestAnimationFrame(() => requestAnimationFrame(init3D));
+  }
+});
+
 // ── Cut Out ────────────────────────────────────────────────────────
 export function doCut() {
   const W = DC.width, H = DC.height;
@@ -241,12 +254,110 @@ function buildPlaneGeometry(cells, cellW, cellH, z, reverse = false) {
   return geo;
 }
 
-function addSideQuad(positions, indices, verts, idx) {
+function buildCardboardSideTexture() {
+  const w = 320;
+  const h = 120;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#7a4d2b';
+  ctx.fillRect(0, 0, w, h);
+
+  const liner = 8;
+  const innerTop = liner;
+  const innerBottom = h - liner;
+  const fluteThickness = 15;
+  const mid = h / 2;
+  const amp = (innerBottom - innerTop - fluteThickness) / 2;
+  const period = 65;
+  const fluteColor = '#d1a779';
+
+  // Front/back liner edges.
+  ctx.fillStyle = '#d1a779';
+  ctx.fillRect(0, 0, w, liner);
+  ctx.fillRect(0, h - liner, w, liner);
+  ctx.fillStyle = fluteColor;
+  ctx.fillRect(0, 0, w, 4);
+  ctx.fillRect(0, liner - 4, w, 4);
+  ctx.fillRect(0, h - liner, w, 4);
+  ctx.fillRect(0, h - 4, w, 4);
+
+  // Dark cavity tone behind the flute.
+  ctx.fillStyle = '#2e2117';
+  ctx.fillRect(0, liner, w, h - liner * 2);
+
+  // Subtle kraft fibres.
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 14) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(74, 43, 21, 0.22)';
+  for (let y = 8; y < h; y += 12) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // Corrugated medium: a single solid ribbon whose outer edge touches the liners.
+  const halfFlute = fluteThickness / 2;
+  const topPath = [];
+  const bottomPath = [];
+  for (let x = -period; x <= w + period; x += 1) {
+    const y = mid + Math.sin((x / period) * Math.PI * 2) * amp;
+    topPath.push([x, y - halfFlute]);
+    bottomPath.push([x, y + halfFlute]);
+  }
+
+  ctx.fillStyle = fluteColor;
+  ctx.beginPath();
+  ctx.moveTo(topPath[0][0], topPath[0][1]);
+  for (const p of topPath) ctx.lineTo(p[0], p[1]);
+  for (let i = bottomPath.length - 1; i >= 0; i--) ctx.lineTo(bottomPath[i][0], bottomPath[i][1]);
+  ctx.closePath();
+  ctx.fill();
+
+  if (sideTextureOverlayReady) {
+    const pattern = ctx.createPattern(sideTextureOverlay, 'repeat');
+    if (pattern) {
+      ctx.save();
+      ctx.globalAlpha = SIDE_TEXTURE_MULTIPLY_ALPHA;
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = SIDE_TEXTURE_SOFT_LIGHT_ALPHA;
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+  }
+
+  return c;
+}
+
+function addSideQuad(positions, uvs, indices, verts, uvRect, idx) {
   positions.push(
     verts[0][0], verts[0][1], verts[0][2],
     verts[1][0], verts[1][1], verts[1][2],
     verts[2][0], verts[2][1], verts[2][2],
     verts[3][0], verts[3][1], verts[3][2]
+  );
+  uvs.push(
+    uvRect[0], uvRect[1],
+    uvRect[2], uvRect[1],
+    uvRect[2], uvRect[3],
+    uvRect[0], uvRect[3]
   );
   indices.push(idx, idx + 2, idx + 1, idx, idx + 3, idx + 2);
 }
@@ -256,8 +367,10 @@ function buildSideGeometry(cells, cellW, cellH, halfDepth) {
 
   const occupied = new Set(cells.map(cell => `${cell.gx},${cell.gy}`));
   const positions = [];
+  const uvs = [];
   const indices = [];
   let idx = 0;
+  const pitch = Math.max(Math.max(cellW, cellH) * 18, 0.75);
 
   for (const cell of cells) {
     const { gx, gy, bx, by } = cell;
@@ -269,39 +382,47 @@ function buildSideGeometry(cells, cellW, cellH, halfDepth) {
     const zb = -halfDepth;
 
     if (!occupied.has(`${gx},${gy - 1}`)) {
-      addSideQuad(positions, indices, [
+      const u0 = x0 / pitch;
+      const u1 = x1 / pitch;
+      addSideQuad(positions, uvs, indices, [
         [x0, y0, zf],
         [x1, y0, zf],
         [x1, y0, zb],
         [x0, y0, zb]
-      ], idx);
+      ], [u0, 0, u1, 1], idx);
       idx += 4;
     }
     if (!occupied.has(`${gx + 1},${gy}`)) {
-      addSideQuad(positions, indices, [
+      const u0 = (-y0) / pitch;
+      const u1 = (-y1) / pitch;
+      addSideQuad(positions, uvs, indices, [
         [x1, y0, zf],
         [x1, y1, zf],
         [x1, y1, zb],
         [x1, y0, zb]
-      ], idx);
+      ], [u0, 0, u1, 1], idx);
       idx += 4;
     }
     if (!occupied.has(`${gx},${gy + 1}`)) {
-      addSideQuad(positions, indices, [
+      const u0 = x1 / pitch;
+      const u1 = x0 / pitch;
+      addSideQuad(positions, uvs, indices, [
         [x1, y1, zf],
         [x0, y1, zf],
         [x0, y1, zb],
         [x1, y1, zb]
-      ], idx);
+      ], [u0, 0, u1, 1], idx);
       idx += 4;
     }
     if (!occupied.has(`${gx - 1},${gy}`)) {
-      addSideQuad(positions, indices, [
+      const u0 = (-y1) / pitch;
+      const u1 = (-y0) / pitch;
+      addSideQuad(positions, uvs, indices, [
         [x0, y1, zf],
         [x0, y0, zf],
         [x0, y0, zb],
         [x0, y1, zb]
-      ], idx);
+      ], [u0, 0, u1, 1], idx);
       idx += 4;
     }
   }
@@ -310,6 +431,7 @@ function buildSideGeometry(cells, cellW, cellH, halfDepth) {
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geo.setIndex(indices);
   geo.computeVertexNormals();
   return geo;
@@ -331,6 +453,12 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
   texFront.premultiplyAlpha = false;
   const texBack = new THREE.CanvasTexture(backCanvas);
   texBack.premultiplyAlpha = false;
+  const texSide = new THREE.CanvasTexture(buildCardboardSideTexture());
+  texSide.wrapS = THREE.RepeatWrapping;
+  texSide.wrapT = THREE.ClampToEdgeWrapping;
+  texSide.magFilter = THREE.LinearFilter;
+  texSide.minFilter = THREE.LinearFilter;
+  texSide.premultiplyAlpha = false;
 
   let frontMat;
   let backMat;
@@ -351,9 +479,9 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
       metalness: 0
     });
     sideMat = new THREE.MeshStandardMaterial({
-      color: 0xf4efe3,
+      map: texSide,
       side: THREE.DoubleSide,
-      roughness: 0.98,
+      roughness: 1,
       metalness: 0
     });
   } else {
@@ -370,7 +498,7 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
       alphaTest: 0.5
     });
     sideMat = new THREE.MeshLambertMaterial({
-      color: 0xf4efe3,
+      map: texSide,
       side: THREE.DoubleSide
     });
   }
@@ -392,7 +520,7 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
     grp,
     scW,
     scH,
-    resources: [geoFront, geoBack, geoSides, texFront, texBack, frontMat, backMat, sideMat]
+    resources: [geoFront, geoBack, geoSides, texFront, texBack, texSide, frontMat, backMat, sideMat]
   };
 }
 
