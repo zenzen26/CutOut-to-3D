@@ -112,12 +112,11 @@ function buildGeometryData(outside, MW, MH) {
   const cw = scW / (sw / step);
   const ch = scH / (sh / step);
 
-  const positions = [];
-  const uvs = [];
-  const indices = [];
-  let idx = 0;
+  const cells = [];
+  let gy = 0;
 
   for (let py = 0; py < sh - step; py += step) {
+    let gx = 0;
     for (let px = 0; px < sw - step; px += step) {
       let hit = false;
       scan:
@@ -131,28 +130,21 @@ function buildGeometryData(outside, MW, MH) {
           }
         }
       }
-      if (!hit) continue;
-
-      const bx = (px / sw) * scW - scW / 2;
-      const by = -(py / sh) * scH + scH / 2;
-      const u0 = (x0 + px) / MW;
-      const v0 = 1 - (y0 + py) / MH;
-      const u1 = (x0 + px + step) / MW;
-      const v1 = 1 - (y0 + py + step) / MH;
-
-      positions.push(
-        bx, by, 0,
-        bx + cw, by, 0,
-        bx + cw, by - ch, 0,
-        bx, by - ch, 0
-      );
-      uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
-      indices.push(idx, idx + 2, idx + 1, idx, idx + 3, idx + 2);
-      idx += 4;
+      if (hit) {
+        const bx = (px / sw) * scW - scW / 2;
+        const by = -(py / sh) * scH + scH / 2;
+        const u0 = (x0 + px) / MW;
+        const v0 = 1 - (y0 + py) / MH;
+        const u1 = (x0 + px + step) / MW;
+        const v1 = 1 - (y0 + py + step) / MH;
+        cells.push({ gx, gy, bx, by, u0, v0, u1, v1 });
+      }
+      gx++;
     }
+    gy++;
   }
 
-  return { positions, uvs, indices, scW, scH };
+  return { cells, scW, scH, cw, ch };
 }
 
 function buildFrontTextureCanvas(img, MW, MH) {
@@ -206,30 +198,132 @@ function buildTextureCanvases(outside, MW, MH, img) {
   return { frontCanvas, backCanvas };
 }
 
-function reverseTriangleIndices(indices) {
-  const reversed = [];
-  for (let i = 0; i < indices.length; i += 3) {
-    reversed.push(indices[i], indices[i + 2], indices[i + 1]);
+function getDepthValue() {
+  const input = document.getElementById('depth3d');
+  return input ? +input.value : 0;
+}
+
+function updateDepthLabel() {
+  const input = document.getElementById('depth3d');
+  const out = document.getElementById('depth3dVal');
+  if (!input || !out) return;
+  out.textContent = String(+input.value);
+}
+
+function buildPlaneGeometry(cells, cellW, cellH, z, reverse = false) {
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  let idx = 0;
+
+  for (const cell of cells) {
+    const { bx, by, u0, v0, u1, v1 } = cell;
+    positions.push(
+      bx, by, z,
+      bx + cellW, by, z,
+      bx + cellW, by - cellH, z,
+      bx, by - cellH, z
+    );
+    uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
+    if (reverse) {
+      indices.push(idx, idx + 1, idx + 2, idx, idx + 2, idx + 3);
+    } else {
+      indices.push(idx, idx + 2, idx + 1, idx, idx + 3, idx + 2);
+    }
+    idx += 4;
   }
-  return reversed;
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function addSideQuad(positions, indices, verts, idx) {
+  positions.push(
+    verts[0][0], verts[0][1], verts[0][2],
+    verts[1][0], verts[1][1], verts[1][2],
+    verts[2][0], verts[2][1], verts[2][2],
+    verts[3][0], verts[3][1], verts[3][2]
+  );
+  indices.push(idx, idx + 2, idx + 1, idx, idx + 3, idx + 2);
+}
+
+function buildSideGeometry(cells, cellW, cellH, halfDepth) {
+  if (halfDepth <= 0) return null;
+
+  const occupied = new Set(cells.map(cell => `${cell.gx},${cell.gy}`));
+  const positions = [];
+  const indices = [];
+  let idx = 0;
+
+  for (const cell of cells) {
+    const { gx, gy, bx, by } = cell;
+    const x0 = bx;
+    const x1 = bx + cellW;
+    const y0 = by;
+    const y1 = by - cellH;
+    const zf = halfDepth;
+    const zb = -halfDepth;
+
+    if (!occupied.has(`${gx},${gy - 1}`)) {
+      addSideQuad(positions, indices, [
+        [x0, y0, zf],
+        [x1, y0, zf],
+        [x1, y0, zb],
+        [x0, y0, zb]
+      ], idx);
+      idx += 4;
+    }
+    if (!occupied.has(`${gx + 1},${gy}`)) {
+      addSideQuad(positions, indices, [
+        [x1, y0, zf],
+        [x1, y1, zf],
+        [x1, y1, zb],
+        [x1, y0, zb]
+      ], idx);
+      idx += 4;
+    }
+    if (!occupied.has(`${gx},${gy + 1}`)) {
+      addSideQuad(positions, indices, [
+        [x1, y1, zf],
+        [x0, y1, zf],
+        [x0, y1, zb],
+        [x1, y1, zb]
+      ], idx);
+      idx += 4;
+    }
+    if (!occupied.has(`${gx - 1},${gy}`)) {
+      addSideQuad(positions, indices, [
+        [x0, y1, zf],
+        [x0, y0, zf],
+        [x0, y0, zb],
+        [x0, y1, zb]
+      ], idx);
+      idx += 4;
+    }
+  }
+
+  if (!positions.length) return null;
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
   const { forExport = false } = opts;
-  const { positions, uvs, indices, scW, scH } = buildGeometryData(outside, MW, MH);
-  const backIndices = reverseTriangleIndices(indices);
+  const { cells, scW, scH, cw, ch } = buildGeometryData(outside, MW, MH);
+  const depthValue = getDepthValue();
+  const halfDepth = (scH * depthValue) / 200;
 
-  const geoFront = new THREE.BufferGeometry();
-  geoFront.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geoFront.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geoFront.setIndex(indices);
-  geoFront.computeVertexNormals();
-
-  const geoBack = new THREE.BufferGeometry();
-  geoBack.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geoBack.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geoBack.setIndex(backIndices);
-  geoBack.computeVertexNormals();
+  const geoFront = buildPlaneGeometry(cells, cw, ch, halfDepth, false);
+  const geoBack = buildPlaneGeometry(cells, cw, ch, -halfDepth, true);
+  const geoSides = buildSideGeometry(cells, cw, ch, halfDepth);
 
   const { frontCanvas, backCanvas } = buildTextureCanvases(outside, MW, MH, img);
 
@@ -240,6 +334,7 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
 
   let frontMat;
   let backMat;
+  let sideMat;
   if (forExport) {
     frontMat = new THREE.MeshStandardMaterial({
       map: texFront,
@@ -255,6 +350,12 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
       roughness: 0.95,
       metalness: 0
     });
+    sideMat = new THREE.MeshStandardMaterial({
+      color: 0xf4efe3,
+      side: THREE.DoubleSide,
+      roughness: 0.98,
+      metalness: 0
+    });
   } else {
     frontMat = new THREE.MeshLambertMaterial({
       map: texFront,
@@ -264,25 +365,34 @@ function buildCutoutGroup(outside, MW, MH, img, opts = {}) {
     });
     backMat = new THREE.MeshLambertMaterial({
       map: texBack,
-      side: THREE.BackSide,
+      side: THREE.FrontSide,
       transparent: true,
       alphaTest: 0.5
+    });
+    sideMat = new THREE.MeshLambertMaterial({
+      color: 0xf4efe3,
+      side: THREE.DoubleSide
     });
   }
 
   const frontMesh = new THREE.Mesh(geoFront, frontMat);
-  const backMesh = new THREE.Mesh(forExport ? geoBack : geoFront.clone(), backMat);
+  const backMesh = new THREE.Mesh(geoBack, backMat);
   const grp = new THREE.Group();
   grp.name = 'cutout';
   frontMesh.name = 'cutout_front';
   backMesh.name = 'cutout_back';
   grp.add(frontMesh, backMesh);
+  if (geoSides) {
+    const sideMesh = new THREE.Mesh(geoSides, sideMat);
+    sideMesh.name = 'cutout_sides';
+    grp.add(sideMesh);
+  }
 
   return {
     grp,
     scW,
     scH,
-    resources: [geoFront, geoBack, texFront, texBack, frontMat, backMat]
+    resources: [geoFront, geoBack, geoSides, texFront, texBack, frontMat, backMat, sideMat]
   };
 }
 
@@ -294,10 +404,41 @@ function disposeResources(resources) {
 
 // ── Three.js 3D View ───────────────────────────────────────────────
 let renderer3 = null, afId = null, _geo = null;
+let previewResources = [];
+let previewCanvas = null;
+let moveHandler3 = null;
+let upHandler3 = null;
+let wheelHandler3 = null;
+let downHandler3 = null;
+let contextMenuHandler3 = null;
+let touchStartHandler3 = null;
+let touchMoveHandler3 = null;
+let touchEndHandler3 = null;
 
 export function destroy3D() {
   if (afId)     { cancelAnimationFrame(afId); afId = null; }
+  if (previewCanvas) {
+    if (downHandler3) previewCanvas.removeEventListener('mousedown', downHandler3);
+    if (contextMenuHandler3) previewCanvas.removeEventListener('contextmenu', contextMenuHandler3);
+    if (wheelHandler3) previewCanvas.removeEventListener('wheel', wheelHandler3);
+    if (touchStartHandler3) previewCanvas.removeEventListener('touchstart', touchStartHandler3);
+    if (touchMoveHandler3) previewCanvas.removeEventListener('touchmove', touchMoveHandler3);
+    if (touchEndHandler3) previewCanvas.removeEventListener('touchend', touchEndHandler3);
+  }
+  if (moveHandler3) window.removeEventListener('mousemove', moveHandler3);
+  if (upHandler3) window.removeEventListener('mouseup', upHandler3);
   if (renderer3) { renderer3.dispose(); renderer3 = null; }
+  disposeResources(previewResources);
+  previewResources = [];
+  previewCanvas = null;
+  moveHandler3 = null;
+  upHandler3 = null;
+  wheelHandler3 = null;
+  downHandler3 = null;
+  contextMenuHandler3 = null;
+  touchStartHandler3 = null;
+  touchMoveHandler3 = null;
+  touchEndHandler3 = null;
   _geo = null;
 }
 
@@ -308,6 +449,7 @@ export function init3D() {
   const W3    = Math.round(rect.width)  || 860;
   const H3    = Math.round(rect.height) || 440;
   const tcan  = document.getElementById('tc');
+  previewCanvas = tcan;
   tcan.width = W3; tcan.height = H3;
 
   const scene = new THREE.Scene();
@@ -327,7 +469,8 @@ export function init3D() {
 
   // ── Geometry + textures + materials ──
   const outside = DC._outside, MW = DC._W, MH = DC._H, img = DC._texImg;
-  const { grp, scW, scH } = buildCutoutGroup(outside, MW, MH, img);
+  const { grp, scW, scH, resources } = buildCutoutGroup(outside, MW, MH, img);
+  previewResources = resources;
   _geo = grp.children[0].geometry;
 
   // shadow plane
@@ -342,33 +485,38 @@ export function init3D() {
   let drag = false, rdrag = false, lx = 0, ly = 0;
   let rotX = 0.15, rotY = 0.3, zoom = 4.5, panX = 0, panY = 0;
 
-  tcan.addEventListener('mousedown', e => {
+  downHandler3 = e => {
     drag = true; rdrag = e.button === 2;
     lx = e.clientX; ly = e.clientY;
     e.preventDefault();
-  });
-  tcan.addEventListener('contextmenu', e => e.preventDefault());
-  window.addEventListener('mousemove', e => {
+  };
+  contextMenuHandler3 = e => e.preventDefault();
+  moveHandler3 = e => {
     if (!drag) return;
     const dx = e.clientX - lx, dy = e.clientY - ly;
     lx = e.clientX; ly = e.clientY;
     if (rdrag) { panX += dx * .004; panY -= dy * .004; }
     else       { rotY += dx * .007; rotX += dy * .007; }
-  });
-  window.addEventListener('mouseup', () => drag = false);
-  tcan.addEventListener('wheel', e => {
+  };
+  upHandler3 = () => { drag = false; };
+  wheelHandler3 = e => {
     zoom += e.deltaY * .003;
     zoom  = Math.max(1.2, Math.min(12, zoom));
     e.preventDefault();
-  }, { passive: false });
+  };
+  tcan.addEventListener('mousedown', downHandler3);
+  tcan.addEventListener('contextmenu', contextMenuHandler3);
+  window.addEventListener('mousemove', moveHandler3);
+  window.addEventListener('mouseup', upHandler3);
+  tcan.addEventListener('wheel', wheelHandler3, { passive: false });
 
   let ltd = 0;
-  tcan.addEventListener('touchstart', e => {
+  touchStartHandler3 = e => {
     if (e.touches.length === 1) { drag = true; lx = e.touches[0].clientX; ly = e.touches[0].clientY; }
     else ltd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     e.preventDefault();
-  }, { passive: false });
-  tcan.addEventListener('touchmove', e => {
+  };
+  touchMoveHandler3 = e => {
     if (e.touches.length === 1 && drag) {
       const dx = e.touches[0].clientX - lx, dy = e.touches[0].clientY - ly;
       lx = e.touches[0].clientX; ly = e.touches[0].clientY;
@@ -380,8 +528,11 @@ export function init3D() {
       ltd = d;
     }
     e.preventDefault();
-  }, { passive: false });
-  tcan.addEventListener('touchend', () => drag = false);
+  };
+  touchEndHandler3 = () => { drag = false; };
+  tcan.addEventListener('touchstart', touchStartHandler3, { passive: false });
+  tcan.addEventListener('touchmove', touchMoveHandler3, { passive: false });
+  tcan.addEventListener('touchend', touchEndHandler3);
 
   (function loop() {
     if (!renderer3) return;
@@ -395,6 +546,14 @@ export function init3D() {
 
 // ── GLB Export ─────────────────────────────────────────────────────
 document.getElementById('btnGLB').addEventListener('click', exportGLB);
+
+updateDepthLabel();
+document.getElementById('depth3d').addEventListener('input', () => {
+  updateDepthLabel();
+  if (!document.getElementById('v3d').classList.contains('on')) return;
+  if (!DC._outside) return;
+  requestAnimationFrame(() => requestAnimationFrame(init3D));
+});
 
 export function exportGLB() {
   if (!DC._outside) { alert('Cut out a shape first.'); return; }

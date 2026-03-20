@@ -109,6 +109,11 @@
         <div class="v3d-bar">
           <span class="v3d-lbl">✂ 3D Mode</span>
           <div class="v3d-right">
+            <label class="v3d-depth" for="depth3d">
+              <span class="v3d-depth-lbl">depth</span>
+              <input type="range" id="depth3d" class="v3d-range" min="0" max="20" step="1" value="0">
+              <span class="v3d-depth-val" id="depth3dVal">0</span>
+            </label>
             <span class="v3d-hint">drag · scroll · right-drag pan</span>
             <button class="btn-dk accent" id="btnGLB">⬇ Export GLB</button>
           </div>

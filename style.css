@@ -389,6 +389,29 @@ body::before {
 }
 .v3d-hint { font-size: .65rem; color: rgba(247,243,235,.3); letter-spacing: .04em; }
 .v3d-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.v3d-depth {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 3px;
+  background: rgba(255,255,255,.05);
+  color: rgba(247,243,235,.72);
+  font-size: .66rem;
+  letter-spacing: .04em;
+}
+.v3d-depth-lbl { text-transform: uppercase; }
+.v3d-depth-val {
+  min-width: 18px;
+  text-align: right;
+  color: rgba(255,240,205,.92);
+  font-variant-numeric: tabular-nums;
+}
+.v3d-range {
+  width: 92px;
+  accent-color: #d3b173;
+}
 .vstack { position: relative; flex: 1; overflow: hidden; min-height: 0; }
 #tc { display: block; position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
 
@@ -480,6 +503,8 @@ body::before {
 
   .v3d-bar { flex-direction: column; align-items: flex-start; padding: 8px 10px; gap: 6px; }
   .v3d-right { width: 100%; justify-content: flex-end; }
+  .v3d-depth { width: 100%; justify-content: flex-end; }
+  .v3d-range { width: 120px; }
 
   .caption { font-size: .82rem; }
   .stamp-badge { max-width: 80px; }
